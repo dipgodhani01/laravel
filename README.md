@@ -12,3 +12,6 @@
 8. create stripe token.
 9. create customer & save card details.
 10. create method for start monthly, yearly & lifetime trial subscription.
+11. create conditions for start & change subscription.
+12. charged the pending days amount of monthly.
+13. implement start monthly subscription.

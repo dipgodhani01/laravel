@@ -7,8 +7,10 @@ use App\Models\CardDetail;
 use App\Models\SubscriptionDetails;
 use App\Models\SubscriptionPlan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Stripe\Stripe;
 use Stripe\Customer;
+use Stripe\StripeClient;
 
 class SubscriptionController extends Controller
 {
@@ -39,25 +41,69 @@ class SubscriptionController extends Controller
     {
         try {
             $user_id = auth()->user()->id;
+            $user_name = auth()->user()->name;
             $secretKey = env('STRIPE_SECRET_KEY');
+
             Stripe::setApiKey($secretKey);
+
             $stripeData = $request->input('data');
 
+            $stripe = new StripeClient($secretKey);
+
             $customer = $this->createCustomer($stripeData['id']);
-            $customer_id = $customer['id'];
+            $customer_id = $customer->id;
 
             $subscriptionPlan = SubscriptionPlan::where('id', $request->plan_id)->first();
 
-            if ($subscriptionPlan->type == 0) { // monthly trial
-                $subscriptionData =  SubscriptionHelper::start_monthly_trial_subscription($customer_id, $user_id, $subscriptionPlan);
-            } else if ($subscriptionPlan->type == 1) { // yearly trial
-                $subscriptionData =  SubscriptionHelper::start_yearly_trial_subscription($customer_id, $user_id, $subscriptionPlan);
-            } else if ($subscriptionPlan->type == 2) { // lifetime trial
-                $subscriptionData =  SubscriptionHelper::start_lifetime_trial_subscription($customer_id, $user_id, $subscriptionPlan);
+            // Start and change subscription conditions START
+
+            // check if exists any current active subscription
+            $subscriptionDetail =  SubscriptionDetails::where(['user_id' => $user_id, 'status' => 'active', 'cancle' => 0])->orderBy('id', 'desc')->first();
+
+            // check if exists any subscription available of the user
+            $subscriptionDetailsCount =  SubscriptionDetails::where(['user_id' => $user_id])->orderBy('id', 'desc')->count();
+
+            // if monthly available & change into yearly
+            if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'month' && $subscriptionPlan->type == 1) {
+            }
+            // if monthly available & change into lifetime
+            else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'month' && $subscriptionPlan->type == 2) {
+            }
+            // if yearly available & change into monthly
+            else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'year' && $subscriptionPlan->type == 0) {
+            }
+            // if yearly available & change into lifetime
+            else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'year' && $subscriptionPlan->type == 2) {
+            }
+            // not available any plan already
+            else {
+                if ($subscriptionDetailsCount == 0) {
+                    // new user
+                    if ($subscriptionPlan->type == 0) { // monthly trial
+                        $subscriptionData =  SubscriptionHelper::start_monthly_trial_subscription($customer_id, $user_id, $subscriptionPlan);
+                    } else if ($subscriptionPlan->type == 1) { // yearly trial
+                        $subscriptionData =  SubscriptionHelper::start_yearly_trial_subscription($customer_id, $user_id, $subscriptionPlan);
+                    } else if ($subscriptionPlan->type == 2) { // lifetime trial
+                        $subscriptionData =  SubscriptionHelper::start_lifetime_trial_subscription($customer_id, $user_id, $subscriptionPlan);
+                    }
+                } else {
+                    // user all subscription cancelled
+                    if ($subscriptionPlan->type == 0) {
+                        // monthly subscription
+                        SubscriptionHelper::capture_monthly_pending_fees($customer_id, $user_id, $user_name, $subscriptionPlan, $stripe);
+                        $subscriptionData =  SubscriptionHelper::start_monthly_subscription($customer_id, $user_id, $subscriptionPlan, $stripe);
+                    } else if ($subscriptionPlan->type == 1) {
+                        // yearly subscription
+                    } else if ($subscriptionPlan->type == 2) {
+                        // lifetime subscription
+                    }
+                }
             }
 
-            $this->saveCardDetails($stripeData, $user_id, $customer_id);
+            // Start and change subscription conditions END
 
+            $this->saveCardDetails($stripeData, $user_id, $customer_id);
+            Log::info('Subscription Data:', ['data' => $subscriptionData]);
             if ($subscriptionData) {
                 return response()->json(['success' => true, 'msg' => 'Subscription purchased!']);
             } else {
