@@ -15,3 +15,5 @@
 11. create conditions for start & change subscription.
 12. charged the pending days amount of monthly.
 13. implement start monthly subscription.
+14. charged the pending days amount of yearly.
+15. implement start yearly subscription.
