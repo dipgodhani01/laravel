@@ -14,7 +14,7 @@ class CardDetail extends Model
         'customer_id',
         'card_id',
         'name',
-        'card_no',
+        'card_number',
         'brand',
         'month',
         'year',

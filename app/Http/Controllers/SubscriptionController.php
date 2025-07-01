@@ -127,13 +127,18 @@ class SubscriptionController extends Controller
             'email' => auth()->user()->email,
             'source' => $token_id,
         ]);
-
         return $customer;
     }
 
     public function saveCardDetails($cardData, $user_id, $customer_id)
     {
-        CardDetail::updateOrCreate(['user_id' => $user_id, 'card_number' => $cardData[' ']['last4']], [
+        Log::info($cardData);
+        Log::info($user_id);
+        Log::info($customer_id);
+        CardDetail::updateOrCreate([
+            'user_id' => $user_id,
+            'card_number' => $cardData['card']['last4']
+        ], [
             'user_id' => $user_id,
             'customer_id' => $customer_id,
             'card_id' => $cardData['card']['id'],

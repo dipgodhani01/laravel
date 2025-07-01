@@ -135,9 +135,7 @@ class SubscriptionHelper
         $daysInMonth = date('t');
         $currentDay = date('j');
         $amountForRestDays = ceil(($daysInMonth - $currentDay) * ($totalAmount / $daysInMonth));
-        if ($amountForRestDays < 1) {
-            $amountForRestDays = 1;
-        }
+
         $stripeChargeData = $stripe->charges->create([
             'amount' => $amountForRestDays * 100,
             'currency' => 'usd',
