@@ -66,15 +66,19 @@ class SubscriptionController extends Controller
             // if monthly available & change into yearly
             if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'month' && $subscriptionPlan->type == 1) {
             }
+
             // if monthly available & change into lifetime
             else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'month' && $subscriptionPlan->type == 2) {
             }
+
             // if yearly available & change into monthly
             else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'year' && $subscriptionPlan->type == 0) {
             }
+
             // if yearly available & change into lifetime
             else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'year' && $subscriptionPlan->type == 2) {
             }
+
             // not available any plan already
             else {
                 if ($subscriptionDetailsCount == 0) {
@@ -103,7 +107,6 @@ class SubscriptionController extends Controller
             // Start and change subscription conditions END
 
             $this->saveCardDetails($stripeData, $user_id, $customer_id);
-            Log::info('Subscription Data:', ['data' => $subscriptionData]);
             if ($subscriptionData) {
                 return response()->json(['success' => true, 'msg' => 'Subscription purchased!']);
             } else {
@@ -130,7 +133,7 @@ class SubscriptionController extends Controller
 
     public function saveCardDetails($cardData, $user_id, $customer_id)
     {
-        CardDetail::updateOrCreate(['user_id' => $user_id, 'card_number' => $cardData['card']['last4']], [
+        CardDetail::updateOrCreate(['user_id' => $user_id, 'card_number' => $cardData[' ']['last4']], [
             'user_id' => $user_id,
             'customer_id' => $customer_id,
             'card_id' => $cardData['card']['id'],

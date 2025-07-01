@@ -5,7 +5,7 @@ namespace App\Helpers;
 use App\Models\PendingFees;
 use App\Models\SubscriptionDetails;
 use App\Models\User;
-
+use Illuminate\Support\Facades\Log;
 
 class SubscriptionHelper
 {
@@ -174,8 +174,8 @@ class SubscriptionHelper
 
     public static function start_monthly_subscription($customer_id, $user_id, $subscriptionPlan, $stripe)
     {
-        $stripeData = null;
         try {
+            $stripeData = null;
             $millisecondDate = strtotime(date('Y-m-') . '01');
             $current_period_start = date('Y-m-d', strtotime('+1 month', $millisecondDate)) . ' 00:00:00';
             $current_period_end = date('Y-m-t', strtotime('+1 month')) . ' 23:59:59';
@@ -190,26 +190,26 @@ class SubscriptionHelper
                 'billing_cycle_anchor' => strtotime($current_period_start),
                 'proration_behavior' => 'none',
             ]);
+
             $stripeData = $stripeData->jsonSerialize();
-
             if (!empty($stripeData)) {
-                $customerId = $stripeData['customer'];
                 $subscriptionId = $stripeData['id'];
-
+                $customerId = $stripeData['customer'];
                 if (!empty($stripeData['items'])) {
-                    $planId = $stripeData['items']['data'][0]['plan']['id'];
+                    $planId = $stripeData['items']['data'][0]['price']['id'];
+                } else {
+                    $planId = $stripeData['plan']['id'];
                 }
-
                 $priceData = $stripe->plans->retrieve(
                     $planId,
                     [],
                 );
-
                 $planAmount = ($priceData->amount / 100);
-                $planCurrency = $stripeData->currency;
-                $planInterval = $stripeData['items']['data'][0]['plan']['interval'];
-                $planIntervalCount = $stripeData['items']['data'][0]['plan']['interval_count'];
+                $planCurrency = $priceData->currency;
+                $planInterval = $priceData->interval;
+                $planIntervalCount = $priceData->interval_count;
                 $created = date('Y-m-d H:i:s', $stripeData['created']);
+
                 $subscriptionDetailsData = [
                     'user_id' => $user_id,
                     'stripe_subscription_id' => $subscriptionId,
@@ -227,10 +227,9 @@ class SubscriptionHelper
                     'created_at' => date('Y-m-d H:i:s'),
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
-                $inserted = SubscriptionDetails::insert($subscriptionDetailsData);
-                User::where('id', $user_id)->update(['is_subscribed' => 1]);
 
-                return $inserted;
+                $stripeData = SubscriptionDetails::insert($subscriptionDetailsData);
+                User::where('id', $user_id)->update(['is_subscribed' => 1]);
             }
 
             return $stripeData;
