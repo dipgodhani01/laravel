@@ -13,7 +13,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton('subscription_helper', function () {
+            return new \App\Helpers\SubscriptionHelper();
+        });
     }
 
     /**

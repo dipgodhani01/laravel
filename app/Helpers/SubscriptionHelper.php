@@ -5,6 +5,9 @@ namespace App\Helpers;
 use App\Models\PendingFees;
 use App\Models\SubscriptionDetails;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
+use Stripe\Stripe;
+use Stripe\Subscription;
 
 class SubscriptionHelper
 {
@@ -341,9 +344,6 @@ class SubscriptionHelper
         }
     }
 
-
-
-
     public static function start_lifetime_subscription($customer_id, $user_id, $user_name, $subscriptionPlan, $stripe)
     {
         try {
@@ -403,5 +403,39 @@ class SubscriptionHelper
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    public static function cancle_current_subscription($user_id, $subscriptionDetail)
+    {
+        try {
+            $secretKey = env('STRIPE_SECRET_KEY');
+            Stripe::setApiKey($secretKey);
+
+            if ($subscriptionDetail->stripe_subscription_id != null && $subscriptionDetail->stripe_subscription_id != '') {
+                $subscription =  Subscription::retrieve($subscriptionDetail->stripe_subscription_id);
+                Log::info($subscription);
+                $subscription->cancel();
+            }
+
+            SubscriptionDetails::where('id', $subscriptionDetail->id)->update([
+                'status' => 'cancelled',
+                'cancle' => 1,
+                'cancelled_at' => date('Y-m-d H:i:s'),
+            ]);
+            User::where('id', $user_id)->update(['is_subscribed' => 0]);
+        } catch (\Exception $e) {
+            Log::info($e->getMessage());
+        }
+    }
+
+    public static function getCurrentSubscription()
+    {
+        $currentSubscription =  SubscriptionDetails::where([
+            'user_id' => auth()->user()->id,
+            'status' => 'active',
+            'cancle' => 0,
+        ])->orderBy('id', 'desc')->first();
+
+        return $currentSubscription;
     }
 }

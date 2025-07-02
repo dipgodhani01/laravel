@@ -43,11 +43,10 @@ class SubscriptionController extends Controller
             $user_id = auth()->user()->id;
             $user_name = auth()->user()->name;
             $secretKey = env('STRIPE_SECRET_KEY');
-
             Stripe::setApiKey($secretKey);
 
             $stripeData = $request->input('data');
-
+            $subscriptionData =  null;
             $stripe = new StripeClient($secretKey);
 
             $customer = $this->createCustomer($stripeData['id']);
@@ -65,18 +64,26 @@ class SubscriptionController extends Controller
 
             // if monthly available & change into yearly
             if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'month' && $subscriptionPlan->type == 1) {
+                SubscriptionHelper::cancle_current_subscription($user_id, $subscriptionDetail);
+                $subscriptionData =  SubscriptionHelper::start_yearly_subscription($customer_id, $user_id, $subscriptionPlan, $stripe);
             }
 
             // if monthly available & change into lifetime
             else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'month' && $subscriptionPlan->type == 2) {
+                SubscriptionHelper::cancle_current_subscription($user_id, $subscriptionDetail);
+                $subscriptionData =  SubscriptionHelper::start_lifetime_subscription($customer_id, $user_id, $user_name, $subscriptionPlan, $stripe);
             }
 
             // if yearly available & change into monthly
             else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'year' && $subscriptionPlan->type == 0) {
+                SubscriptionHelper::cancle_current_subscription($user_id, $subscriptionDetail);
+                $subscriptionData =  SubscriptionHelper::start_monthly_subscription($customer_id, $user_id, $subscriptionPlan, $stripe);
             }
 
             // if yearly available & change into lifetime
             else if ($subscriptionDetail && $subscriptionDetail->plan_interval == 'year' && $subscriptionPlan->type == 2) {
+                SubscriptionHelper::cancle_current_subscription($user_id, $subscriptionDetail);
+                $subscriptionData =  SubscriptionHelper::start_lifetime_subscription($customer_id, $user_id, $user_name, $subscriptionPlan, $stripe);
             }
 
             // not available any plan already

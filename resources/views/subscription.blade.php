@@ -5,17 +5,34 @@
 <div class="h-[calc(100vh-136px)] mt-[68px]">
     <div class="container mx-auto p-4">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+
+            @php
+            $currentPlan = app('subscription_helper')->getCurrentSubscription();
+
+            @endphp
+
             @foreach($plans as $plan)
             <div class="bg-gray-200 px-2 py-4">
-                <h3 class="text-xl text-blue-800 font-semibold text-center">{{$plan->name}}</h3>
+                <h3 class="text-xl text-blue-800 font-semibold text-center">
+                    {{$plan->name}}
+                    @if($currentPlan && $currentPlan->subscription_plan_price_id == $plan->stripe_price_id)
+                    <span class="text-green-600 text-sm font-normal"> (Active)</span>
+                    @endif
+                </h3>
                 <div class="text-center">
                     <span class="font-semibold">$ {{$plan->plan_amount}}.00</span>
                 </div>
                 <div class="text-center mt-4">
+                    @if($currentPlan && $currentPlan->subscription_plan_price_id == $plan->stripe_price_id)
+                    <button class="p-2 bg-red-600 text-white text-sm font-medium rounded" data-id="{{$plan->id}}">
+                        Cancel Plan
+                    </button>
+                    @else
                     <button class="p-2 bg-blue-700 text-white text-sm font-medium rounded confirmationBtn"
                         data-id="{{$plan->id}}">
                         Subscribe
                     </button>
+                    @endif
                 </div>
             </div>
             @endforeach
@@ -34,7 +51,7 @@
         </div>
         <div class="p-4">
             <div class="confirmation-data">
-                <p>Loading...</p>
+                <div class="loader mx-auto"></div>
             </div>
         </div>
         <div class="flex justify-end space-x-3 border-t p-4">
@@ -75,6 +92,8 @@
         </div>
     </div>
 </div>
+
+
 @endsection
 
 @push('scripts')
@@ -101,8 +120,8 @@ function proceedToStripe() {
 <script>
 $(document).ready(function() {
     $(".confirmationBtn").click(function() {
-        $('#modelTitle').text('Loading...');
-        $('.confirmation-data').html(`<p class="text-center">Loading...</p>`);
+        $('#modelTitle').html(`<div class="loader-sm mx-auto"></div>`);
+        $('.confirmation-data').html(`<div class="loader mx-auto"></div>`);
         const planId = $(this).data('id');
 
         $('#planId').val(planId);
@@ -137,6 +156,7 @@ $(document).ready(function() {
 // Stripe code start
 
 // Stripe.js loaded
+let submitButton = document.getElementById('buyPlanSubmitBtn');
 if (window.Stripe) {
     const stripe = Stripe("{{ env('STRIPE_PUBLIC_KEY') }}");
     const elements = stripe.elements();
@@ -155,15 +175,18 @@ if (window.Stripe) {
             displayError.textContent = '';
         }
     });
-    let submitButton = document.getElementById('buyPlanSubmitBtn');
 
     submitButton.addEventListener('click', function(e) {
         e.preventDefault();
 
+        submitButton.disabled = true;
+        submitButton.innerHTML = `<div class="loader-sm"></div>`;
         stripe.createToken(card).then((res) => {
             if (res.error) {
                 const errorElement = document.getElementById('card-errors');
                 errorElement.textContent = res.error.message;
+                submitButton.disabled = false;
+                submitButton.innerHTML = `Pay Now`;
             } else {
                 createSubscription(res.token);
             }
@@ -185,12 +208,19 @@ function createSubscription(token) {
             if (res.success) {
                 alert(res.msg);
                 closeModal('stripeModel');
+                submitButton.disabled = false;
+                submitButton.innerHTML = `Pay Now`;
+                location.reload();
             } else {
                 alert("Something went wrong!");
+                submitButton.disabled = false;
+                submitButton.innerHTML = `Pay Now`;
             }
         },
         error: function() {
             alert("Server Error!");
+            submitButton.disabled = false;
+            submitButton.innerHTML = `Pay Now`;
         }
     });
 

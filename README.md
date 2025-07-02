@@ -14,6 +14,11 @@
 10. create method for start monthly, yearly & lifetime trial subscription.
 11. create conditions for start & change subscription.
 12. charged the pending days amount of monthly.
-13. implement start monthly subscription.
+13. implement monthly subscription.
 14. charged the pending days amount of yearly.
-15. implement start yearly subscription.
+15. implement yearly subscription.
+16. implement lifetime subscription.
+17. Upgrade subscription
+18. add loader
+19. create helper method to get current subscription
+20. show current subscription on subscription page.
