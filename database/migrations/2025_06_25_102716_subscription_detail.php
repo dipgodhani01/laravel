@@ -23,10 +23,10 @@ return new class extends Migration
             $table->float('plan_amount', 10, 2);
             $table->string('plan_amount_currency');
             $table->string('plan_interval');
-            $table->string('plan_interval_count');
+            $table->integer('plan_interval_count');
             $table->timestamp('plan_created_at');
             $table->timestamp('plan_started_at')->nullable();
-            $table->timestamp('plan_ended_at')->nullable();
+            $table->dateTime('plan_ended_at')->nullable();
             $table->bigInteger('trial_ended_at')->nullable();
             $table->enum('status', ['active', 'cancelled']);
             $table->integer('cancle')->default(0)->comment('0 -> active, 1 -> cancelled');

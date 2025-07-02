@@ -92,20 +92,19 @@ class SubscriptionController extends Controller
                     }
                 } else {
                     // user all subscription cancelled
-                    if ($subscriptionPlan->type == 0) {
-                        // monthly subscription
+                    if ($subscriptionPlan->type == 0) { // monthly subscription
                         SubscriptionHelper::capture_monthly_pending_fees($customer_id, $user_id, $user_name, $subscriptionPlan, $stripe);
                         $subscriptionData =  SubscriptionHelper::start_monthly_subscription($customer_id, $user_id, $subscriptionPlan, $stripe);
-                    } else if ($subscriptionPlan->type == 1) {
-                        // yearly subscription
-                    } else if ($subscriptionPlan->type == 2) {
-                        // lifetime subscription
+                    } else if ($subscriptionPlan->type == 1) { // yearly subscription
+                        SubscriptionHelper::capture_yearly_pending_fees($customer_id, $user_id, $user_name, $subscriptionPlan, $stripe);
+                        $subscriptionData =  SubscriptionHelper::start_yearly_subscription($customer_id, $user_id, $subscriptionPlan, $stripe);
+                    } else if ($subscriptionPlan->type == 2) { // lifetime subscription
+                        $subscriptionData =  SubscriptionHelper::start_lifetime_subscription($customer_id, $user_id, $user_name, $subscriptionPlan, $stripe);
                     }
                 }
             }
 
             // Start and change subscription conditions END
-
             $this->saveCardDetails($stripeData, $user_id, $customer_id);
             if ($subscriptionData) {
                 return response()->json(['success' => true, 'msg' => 'Subscription purchased!']);
@@ -132,12 +131,9 @@ class SubscriptionController extends Controller
 
     public function saveCardDetails($cardData, $user_id, $customer_id)
     {
-        Log::info($cardData);
-        Log::info($user_id);
-        Log::info($customer_id);
         CardDetail::updateOrCreate([
             'user_id' => $user_id,
-            'card_number' => $cardData['card']['last4']
+            'card_number' => $cardData['card']['last4'],
         ], [
             'user_id' => $user_id,
             'customer_id' => $customer_id,
