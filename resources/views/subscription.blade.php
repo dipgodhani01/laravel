@@ -23,17 +23,37 @@
                     <span class="font-semibold">$ {{$plan->plan_amount}}.00</span>
                 </div>
                 <div class="text-center mt-4">
-                    @if($currentPlan && $currentPlan->subscription_plan_price_id == $plan->stripe_price_id)
-                    <button class="p-2 bg-red-600 text-white text-sm font-medium rounded" data-id="{{$plan->id}}">
+                    @if($currentPlan)
+                    @if($currentPlan->subscription_plan_price_id == $plan->stripe_price_id)
+                    @if($currentPlan->plan_interval == 'lifetime')
+                    <button class="p-2 bg-blue-600 text-white text-sm font-medium rounded">
+                        Subscribed
+                    </button>
+                    @else
+                    <button class="p-2 bg-red-600 text-white text-sm font-medium rounded subscriptionCancel">
                         Cancel Plan
+                    </button>
+                    @endif
+                    @else
+                    @if($currentPlan->plan_interval == 'lifetime')
+                    <button class="p-2 bg-gray-400 text-white text-sm font-medium rounded" disabled>
+                        Already Subscribed (Lifetime)
                     </button>
                     @else
                     <button class="p-2 bg-blue-700 text-white text-sm font-medium rounded confirmationBtn"
-                        data-id="{{$plan->id}}">
+                        data-id="{{ $plan->id }}">
+                        Subscribe
+                    </button>
+                    @endif
+                    @endif
+                    @else
+                    <button class="p-2 bg-blue-700 text-white text-sm font-medium rounded confirmationBtn"
+                        data-id="{{ $plan->id }}">
                         Subscribe
                     </button>
                     @endif
                 </div>
+
             </div>
             @endforeach
         </div>
@@ -101,129 +121,152 @@
 <script src="https://js.stripe.com/v3/"></script>
 
 <script>
-function openModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
-    document.getElementById(modalId).classList.add('flex');
-}
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+        document.getElementById(modalId).classList.add('flex');
+    }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-    document.getElementById(modalId).classList.remove('flex');
-}
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+        document.getElementById(modalId).classList.remove('flex');
+    }
 
-function proceedToStripe() {
-    closeModal('confirmationModal');
-    openModal('stripeModel');
-}
+    function proceedToStripe() {
+        closeModal('confirmationModal');
+        openModal('stripeModel');
+    }
 </script>
 
 <script>
-$(document).ready(function() {
-    $(".confirmationBtn").click(function() {
-        $('#modelTitle').html(`<div class="loader-sm mx-auto"></div>`);
-        $('.confirmation-data').html(`<div class="loader mx-auto"></div>`);
-        const planId = $(this).data('id');
+    $(document).ready(function() {
+        $(".confirmationBtn").click(function() {
+            $('#modelTitle').html(`<div class="loader-sm mx-auto"></div>`);
+            $('.confirmation-data').html(`<div class="loader mx-auto"></div>`);
+            const planId = $(this).data('id');
 
-        $('#planId').val(planId);
-        openModal('confirmationModal');
+            $('#planId').val(planId);
+            openModal('confirmationModal');
 
+            $.ajax({
+                type: "POST",
+                url: "{{ route('getPlanDetails') }}",
+                data: {
+                    id: planId,
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.success) {
+                        const data = response.data;
+                        $('#modelTitle').text(`${data.name} ($${data.plan_amount})`);
+                        $('.confirmation-data').html(
+                            `<p class="text-center text-pink-800 font-medium">${response.msg}</p>`
+                        );
+                    } else {
+                        alert("Something went wrong!");
+                    }
+                },
+                error: function() {
+                    alert("Server Error!");
+                }
+            });
+        });
+
+
+        // subscription cancel
+        $('.subscriptionCancel').click(function() {
+            let obj = $(this);
+            $(obj).html(`<div class="loader-sm"></div>`)
+            $(obj).attr(`disabled`, `disabled`)
+            const plan_id = $("#planId").val();
+            $.ajax({
+                url: "{{ route('cancelSubscription') }}",
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                },
+                success: function(res) {
+                    if (res.success) {
+                        alert(res.msg);
+                        window.location.reload();
+                    } else {
+                        alert("Something went wrong!");
+                        $(obj).html(`Cancel Plan`)
+                        $(obj).removeAttr(`disabled`)
+                    }
+                },
+
+            });
+        })
+
+    });
+
+    // Stripe code start
+
+    // Stripe.js loaded
+    let submitButton = document.getElementById('buyPlanSubmitBtn');
+    if (window.Stripe) {
+        const stripe = Stripe("{{ env('STRIPE_PUBLIC_KEY') }}");
+        const elements = stripe.elements();
+
+        const card = elements.create('card', {
+            hidePostalCode: true,
+
+        });
+        card.mount('#card-element');
+
+        card.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
+
+        submitButton.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = ` <div class="loader-sm"> </div>`;
+            stripe.createToken(card).then((res) => {
+                if (res.error) {
+                    const errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = res.error.message;
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = `Pay Now`;
+                } else {
+                    createSubscription(res.token);
+                }
+            });
+        });
+    }
+
+    function createSubscription(token) {
+        const plan_id = $("#planId").val();
         $.ajax({
+            url: "{{ route('createSubscription') }}",
             type: "POST",
-            url: "{{ route('getPlanDetails') }}",
             data: {
-                id: planId,
+                plan_id,
+                data: token, // Send token object
                 _token: "{{ csrf_token() }}"
             },
-            success: function(response) {
-                if (response.success) {
-                    const data = response.data;
-                    $('#modelTitle').text(`${data.name} ($${data.plan_amount})`);
-                    $('.confirmation-data').html(
-                        `<p class="text-center text-pink-800 font-medium">${response.msg}</p>`
-                    );
+            success: function(res) {
+                if (res.success) {
+                    alert(res.msg);
+                    closeModal('stripeModel');
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = `Pay Now`;
+                    location.reload();
                 } else {
                     alert("Something went wrong!");
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = `Pay Now`;
                 }
             },
-            error: function() {
-                alert("Server Error!");
-            }
+
         });
-    });
 
-});
-
-// Stripe code start
-
-// Stripe.js loaded
-let submitButton = document.getElementById('buyPlanSubmitBtn');
-if (window.Stripe) {
-    const stripe = Stripe("{{ env('STRIPE_PUBLIC_KEY') }}");
-    const elements = stripe.elements();
-
-    const card = elements.create('card', {
-        hidePostalCode: true,
-
-    });
-    card.mount('#card-element');
-
-    card.on('change', function(event) {
-        const displayError = document.getElementById('card-errors');
-        if (event.error) {
-            displayError.textContent = event.error.message;
-        } else {
-            displayError.textContent = '';
-        }
-    });
-
-    submitButton.addEventListener('click', function(e) {
-        e.preventDefault();
-
-        submitButton.disabled = true;
-        submitButton.innerHTML = `<div class="loader-sm"></div>`;
-        stripe.createToken(card).then((res) => {
-            if (res.error) {
-                const errorElement = document.getElementById('card-errors');
-                errorElement.textContent = res.error.message;
-                submitButton.disabled = false;
-                submitButton.innerHTML = `Pay Now`;
-            } else {
-                createSubscription(res.token);
-            }
-        });
-    });
-}
-
-function createSubscription(token) {
-    const plan_id = $("#planId").val();
-    $.ajax({
-        url: "{{ route('createSubscription') }}",
-        type: "POST",
-        data: {
-            plan_id,
-            data: token, // Send token object
-            _token: "{{ csrf_token() }}"
-        },
-        success: function(res) {
-            if (res.success) {
-                alert(res.msg);
-                closeModal('stripeModel');
-                submitButton.disabled = false;
-                submitButton.innerHTML = `Pay Now`;
-                location.reload();
-            } else {
-                alert("Something went wrong!");
-                submitButton.disabled = false;
-                submitButton.innerHTML = `Pay Now`;
-            }
-        },
-        error: function() {
-            alert("Server Error!");
-            submitButton.disabled = false;
-            submitButton.innerHTML = `Pay Now`;
-        }
-    });
-
-}
+    }
 </script>
 @endpush

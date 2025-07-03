@@ -154,4 +154,20 @@ class SubscriptionController extends Controller
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
     }
+
+    public function cancelSubscription()
+    {
+        try {
+            $user_id = auth()->user()->id;
+            $subscriptionDetail =  SubscriptionDetails::where(['user_id' => $user_id, 'status' => 'active', 'cancle' => 0])->orderBy('id', 'desc')->first();
+            SubscriptionHelper::cancle_current_subscription($user_id, $subscriptionDetail);
+
+            return response()->json(['success' => true, 'msg' => 'Subscription cancelled.']);
+        } catch (\Exception $e) {
+            return response()->json([
+                "success" => false,
+                "msg" => $e->getMessage(),
+            ]);
+        }
+    }
 }

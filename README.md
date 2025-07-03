@@ -22,3 +22,5 @@
 18. add loader
 19. create helper method to get current subscription
 20. show current subscription on subscription page.
+21. prevent subscribe button, if user suscribed the lifetime plan.
+22. cancle user subscription.

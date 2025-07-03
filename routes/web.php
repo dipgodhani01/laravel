@@ -19,6 +19,7 @@ Route::patch('/home/{id}', [HomeController::class, 'profileUpdate'])->name('home
 Route::get('subscription', [SubscriptionController::class, 'loadSubscription'])->middleware(['auth', 'verified'])->name('subscription');
 Route::post('get-plan-details', [SubscriptionController::class, 'getPlanDetails'])->middleware(['auth', 'verified'])->name('getPlanDetails');
 Route::post('create-subscription', [SubscriptionController::class, 'createSubscription'])->middleware(['auth', 'verified'])->name('createSubscription');
+Route::post('cancel-subscription', [SubscriptionController::class, 'cancelSubscription'])->middleware(['auth', 'verified'])->name('cancelSubscription');
 // Routes for admin
 Route::prefix('admin')->group(function () {
     Route::get('login', [AdminController::class, 'showLoginForm'])->name('admin.login');
