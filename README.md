@@ -24,4 +24,5 @@
 20. show current subscription on subscription page.
 21. prevent subscribe button, if user suscribed the lifetime plan.
 22. cancle user subscription.
-23. create renew subscription helper method
+23. create renew subscription helper method.
+24. create cron job command for trial subscription.

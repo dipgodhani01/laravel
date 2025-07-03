@@ -563,7 +563,7 @@ class SubscriptionHelper
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
-                $stripeData = SubscriptionDetails::where('id', $subscriptionDetail->id)->insert($subscriptionDetailsData);
+                $stripeData = SubscriptionDetails::where('id', $subscriptionDetail->id)->update($subscriptionDetailsData);
                 User::where('id', $user_id)->update(['is_subscribed' => 1]);
             }
 
@@ -624,7 +624,7 @@ class SubscriptionHelper
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
-                $stripeData = SubscriptionDetails::where('id', $subscriptionDetail->id)->insert($subscriptionDetailsData);
+                $stripeData = SubscriptionDetails::where('id', $subscriptionDetail->id)->update($subscriptionDetailsData);
                 User::where('id', $user_id)->update(['is_subscribed' => 1]);
             }
 

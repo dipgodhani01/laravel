@@ -7,7 +7,6 @@ use App\Models\CardDetail;
 use App\Models\SubscriptionDetails;
 use App\Models\SubscriptionPlan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Stripe\Stripe;
 use Stripe\Customer;
 use Stripe\StripeClient;
