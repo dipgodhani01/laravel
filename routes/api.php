@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\AuctionStartController;
+use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\AuthenticatedUserController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\PlayerController;
@@ -10,6 +11,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/auth/google-login', [GoogleAuthController::class, 'handleGoogleCallback']);
 Route::post('/auth/logout', [GoogleAuthController::class, 'logout']);
+Route::post('/auth/admin/create', [AdminAuthController::class, 'createAdmin']);
+Route::post('/auth/admin/login', [AdminAuthController::class, 'loginAdmin']);
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/auth/admin/profile', [AdminAuthController::class, 'getAdmin']);
+    Route::post('/auth/admin/logout', [AdminAuthController::class, 'logout']);
+});
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/auth/user', [AuthenticatedUserController::class, 'getUser']);

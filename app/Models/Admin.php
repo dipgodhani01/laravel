@@ -5,21 +5,12 @@ namespace App\Models;
 use MongoDB\Laravel\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements JWTSubject
+class Admin extends Authenticatable implements JWTSubject
 {
     protected $connection = 'mongodb';
+    protected $collection = 'admins';
 
-    protected $fillable = [
-        'user_id',
-        'name',
-        'email',
-        'image',
-        'email_verified_at',
-    ];
-
-    protected $hidden = [
-        'remember_token',
-    ];
+    protected $fillable = ['username', 'password', 'login_at', 'created_at'];
 
     public function getJWTIdentifier()
     {
