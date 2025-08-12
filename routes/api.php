@@ -2,11 +2,18 @@
 
 use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\AuctionStartController;
+use App\Http\Controllers\Auth\AuthenticatedUserController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth:api'])->group(function () {
+Route::get('/auth/google-login', [GoogleAuthController::class, 'handleGoogleCallback']);
+Route::post('/auth/logout', [GoogleAuthController::class, 'logout']);
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/auth/user', [AuthenticatedUserController::class, 'getUser']);
+
     Route::post('/auction/create-auction', [AuctionController::class, 'createAuction']);
     Route::get('/auction/get/all', [AuctionController::class, 'getAuctions']);
     Route::get('/auction/get-one/{auctionId}', [AuctionController::class, 'getAuctionById']);

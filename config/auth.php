@@ -10,17 +10,31 @@ return [
 
 
 
-    'guards' => [
-        // 'web' => [
-        //     'driver' => 'session',
-        //     'provider' => 'users',
-        // ],
+    // 'guards' => [
+    //     'web' => [
+    //         'driver' => 'session',
+    //         'provider' => 'users',
+    //     ],
 
-        'api' => [
-            'driver' => 'jwt',
+    //     'api' => [
+    //         'driver' => 'jwt',
+    //         'provider' => 'users',
+    //     ],
+    // ],
+    'guards' => [
+        'web' => [
+            'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Add or modify api guard for JWT
+        'api' => [
+            'driver' => 'jwt', // tymon/jwt-auth driver
+            'provider' => 'users',
+            'hash' => false,
+        ],
     ],
+
 
 
 

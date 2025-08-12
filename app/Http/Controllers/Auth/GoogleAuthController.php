@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -7,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Http\Response;
 
 class GoogleAuthController extends Controller
 {
@@ -14,7 +16,6 @@ class GoogleAuthController extends Controller
     {
         try {
             $code = $request->get('code');
-
             $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
                 'code' => $code,
                 'client_id' => config('services.google.client_id'),
@@ -45,16 +46,33 @@ class GoogleAuthController extends Controller
 
             $jwtToken = JWTAuth::fromUser($user);
 
-            return response()->json([
-                'token' => $jwtToken,
+            $response = new Response([
                 'user' => $user,
                 'message' => 'Login successful!',
             ]);
+
+            $cookie = cookie(
+                'token',        // Cookie name
+                $jwtToken,      // Cookie value
+                60 * 24,        // Expiry in minutes (24 hours)
+                null,           // Path
+                null,           // Domain (null = current domain)
+                false,          // Secure (set true if using HTTPS)
+                true            // HttpOnly (JS cannot access)
+            );
+
+            return $response->withCookie($cookie);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Google login failed',
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function logout(Request $request)
+    {
+        $cookie = cookie()->forget('token');
+        return response()->json(['message' => 'Logged out'])->withCookie($cookie);
     }
 }
