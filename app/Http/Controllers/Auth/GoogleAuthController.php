@@ -75,7 +75,27 @@ class GoogleAuthController extends Controller
 
     public function logout(Request $request)
     {
-        $cookie = cookie()->forget('token');
-        return response()->json(['message' => 'Logged out'])->withCookie($cookie);
+        try {
+            $token = $request->cookie('token');
+
+            if ($token) {
+                $payload = JWTAuth::setToken($token)->getPayload();
+                $userId = $payload->get('user_id');
+
+                $user = User::find($userId);
+                if ($user) {
+                    $user->status = false;
+                    $user->save();
+                }
+            }
+
+            $cookie = cookie()->forget('token');
+            return response()->json(['message' => 'Logged out'])->withCookie($cookie);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to logout, please try again',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
