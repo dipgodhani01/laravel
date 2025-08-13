@@ -4,15 +4,20 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AdminAuthController extends Controller
 {
+    private function getAdminFromToken($token)
+    {
+        $payload = JWTAuth::setToken($token)->getPayload();
+        $adminId = $payload->get('admin_id');
+        return Admin::find($adminId);
+    }
     public function createAdmin(Request $request)
     {
         try {
@@ -20,8 +25,9 @@ class AdminAuthController extends Controller
                 'username' => 'required|string',
                 'password' => 'required|string',
             ]);
+
             $admin = new Admin();
-            $admin->username =  $request->username;
+            $admin->username = $request->username;
             $admin->password = Hash::make($request->password);
             $admin->save();
 
@@ -38,7 +44,6 @@ class AdminAuthController extends Controller
         }
     }
 
-
     public function loginAdmin(Request $request)
     {
         try {
@@ -46,20 +51,28 @@ class AdminAuthController extends Controller
                 'username' => 'required|string',
                 'password' => 'required|string',
             ]);
+
             $admin = Admin::where('username', $request->username)->first();
+
             if (!$admin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Admin not found',
                 ], 404);
             }
+
             if (!Hash::check($request->password, $admin->password)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid password',
                 ], 401);
             }
-            $token = JWTAuth::fromUser($admin);
+
+
+            $token = JWTAuth::claims([
+                'role' => 'admin',
+                'admin_id' => $admin->_id
+            ])->fromUser($admin);
 
             $admin->login_at = Carbon::now();
             $admin->save();
@@ -71,14 +84,15 @@ class AdminAuthController extends Controller
             ]);
 
             $cookie = cookie(
-                'admin_token',        // Cookie name
-                $token,      // Cookie value
-                60 * 24,        // Expiry in minutes (24 hours)
-                null,           // Path
-                null,           // Domain (null = current domain)
-                false,          // Secure (set true if using HTTPS)
-                true            // HttpOnly (JS cannot access)
+                'admin_token', // Cookie name
+                $token,        // Cookie value
+                60 * 24,       // Expiry in minutes (24 hours)
+                null,          // Path
+                null,          // Domain
+                false,         // Secure (set true if HTTPS)
+                true           // HttpOnly
             );
+
             return $response->withCookie($cookie);
         } catch (\Exception $e) {
             return response()->json([
@@ -88,6 +102,7 @@ class AdminAuthController extends Controller
         }
     }
 
+
     public function getAdmin(Request $request)
     {
         try {
@@ -96,11 +111,7 @@ class AdminAuthController extends Controller
                 return response()->json(['success' => false, 'message' => 'Token not found'], 401);
             }
 
-            $payload = JWTAuth::setToken($token)->getPayload();
-            $adminId = $payload->get('sub');
-
-            $admin = Admin::find($adminId);
-
+            $admin = $this->getAdminFromToken($token);
             if (!$admin) {
                 return response()->json(['success' => false, 'message' => 'Admin not found'], 404);
             }
@@ -117,10 +128,11 @@ class AdminAuthController extends Controller
     {
         try {
             $token = $request->cookie('admin_token');
-
             if (!$token) {
                 return response()->json(['message' => 'Token not found'], 401);
             }
+            auth()->shouldUse('admin');
+
             JWTAuth::setToken($token)->invalidate();
 
             $cookie = cookie()->forget('admin_token');
@@ -133,6 +145,30 @@ class AdminAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to logout, please try again',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function getAllUsers(Request $request)
+    {
+        try {
+            $token = $request->cookie('admin_token');
+            if (!$token) {
+                return response()->json(['message' => 'Token not found'], 401);
+            }
+
+            $users = User::all();
+
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

@@ -14,12 +14,13 @@ Route::post('/auth/logout', [GoogleAuthController::class, 'logout']);
 Route::post('/auth/admin/create', [AdminAuthController::class, 'createAdmin']);
 Route::post('/auth/admin/login', [AdminAuthController::class, 'loginAdmin']);
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware('jwt.cookie:admin')->group(function () {
     Route::get('/auth/admin/profile', [AdminAuthController::class, 'getAdmin']);
     Route::post('/auth/admin/logout', [AdminAuthController::class, 'logout']);
+    Route::get('/admin/get/all-users', [AdminAuthController::class, 'getAllUsers']);
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware('jwt.cookie:api')->group(function () {
     Route::get('/auth/user', [AuthenticatedUserController::class, 'getUser']);
 
     Route::post('/auction/create-auction', [AuctionController::class, 'createAuction']);

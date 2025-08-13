@@ -15,6 +15,7 @@ return new class extends Migration
                 $collection->unique('email');
                 $collection->index('image');
                 $collection->index('email_verified_at');
+                $collection->boolean('status')->default(false)->index();
             });
         }
     }

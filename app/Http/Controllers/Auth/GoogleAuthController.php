@@ -41,10 +41,13 @@ class GoogleAuthController extends Controller
                     'email' => $googleUser['email'],
                     'image' => $googleUser['picture'],
                     'email_verified_at' => now(),
+                    'status' => true,
                 ]
             );
-
-            $jwtToken = JWTAuth::fromUser($user);
+            $jwtToken = JWTAuth::claims([
+                'role' => 'user',
+                'user_id' => $user->id
+            ])->fromUser($user);
 
             $response = new Response([
                 'user' => $user,
